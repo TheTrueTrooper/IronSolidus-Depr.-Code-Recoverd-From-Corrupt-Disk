@@ -3,39 +3,52 @@
 #include "IronSolidus3.h"
 #include "ButtonHUD.h"
 
+// a tick to call on ticks (for drawing a clicked button)
+// To Do pull out the time to return to a var
 void FButton::Tick(float Delta)
 {
-	Timer = Timer++;
-	if (Timer > 20)
+	//if we want to return give it a sort time
+	if(ButtonsState != ButtonState::Basic)
 	{
-		Timer = 0;
-		ButtonsState = ButtonState::Basic;
-		NeedsTick = false;
+		Timer = Timer++;
+		if (Timer > 20)
+		{
+			Timer = 0;
+			ButtonsState = ButtonState::Basic;
+			NeedsTick = false;
+		}
 	}
 }
 
+// Moves the menu alows us to drag it or some thing
 void FMenu::MoveMenu(FVector2D Move)
 {
 	Start = Start + Move;
 	End = End + Move;
 }
 
+// register a button
 FButton AButtonHUD::MakeButton(float XStart, float YStart, float XEnd, float YEnd, FCanvasIcon Visualup, FCanvasIcon Visualdown, FName name, FString toolTip)
 {
-
+	// Make a new button
 	FButton NewButton;
-
+	
+	// set all the vars
+	//loca
 	NewButton.Start.X = XStart;
 	NewButton.Start.Y = YStart;
+	
 	NewButton.End.X = XEnd;
 	NewButton.End.Y = YEnd;
 
 	NewButton.Width.X = XEnd - XStart;
 	NewButton.Width.Y = XEnd - YStart;
 
+	// set the icon for pressed and not pressed
 	NewButton.VisualUp = Visualup;
 	NewButton.VisualDown = Visualdown;
-
+	
+	// give it a name to bind to and a tool tip these also allow for hover
 	NewButton.Name = name;
 	NewButton.ToolTip = toolTip;
 	
@@ -44,23 +57,29 @@ FButton AButtonHUD::MakeButton(float XStart, float YStart, float XEnd, float YEn
 
 
 
-
+// makes a full menu
 FMenu AButtonHUD::MakeMenu(float XStart, float YStart, float XEnd, float YEnd, FCanvasIcon Visuala, TArray<FButton> Buttons, int32 ButtonTypes = 1)
 {
+	//create one
 	FMenu NewMenu;
-
+	
+	// set the start
 	NewMenu.Start.X = XStart;
 	NewMenu.Start.Y = YStart;
 	NewMenu.End.X = XEnd;
 	NewMenu.End.Y = YEnd;
 
+	//set the end
 	NewMenu.Width.X = XEnd - XStart;
 	NewMenu.Width.Y = XEnd - XStart;
 
+	// set a background to draw
 	NewMenu.Visual = Visuala;
 
+	//link all the buttons
 	NewMenu.TheButtons = Buttons;
 
+	// set type
 	if (ButtonTypes == 1)
 		NewMenu.ButtonTypes = NewMenu.FollowingButtons;
 
@@ -70,9 +89,10 @@ FMenu AButtonHUD::MakeMenu(float XStart, float YStart, float XEnd, float YEnd, F
 	return NewMenu;
 }
 
-
+// simply draws the menu
 void AButtonHUD::DrawHUD()
 {
+	// Do prep and draw
 	Super::DrawHUD();
 	if (bIsMenuUp)
 	{
@@ -80,42 +100,49 @@ void AButtonHUD::DrawHUD()
 	}
 }
 
-
+// Reqired access point
 void AButtonHUD::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
 }
 
-
+// Init that is called by eng.
 AButtonHUD::AButtonHUD(const FObjectInitializer& PCIP) : Super(PCIP)
 {
+	//asume closed with no scale and let the user change later
 	CursScale = 1;
 	bIsMenuUp = false;
 
 }
 
-
+// Draws a button
 void AButtonHUD::DrawButton(FButton button)
 {
+	//if not init there wass a problem just return and wait?
 	if (Canvas == nullptr)
 		return;
+	Get a size
 	FVector2D Size;
 
-	FCanvasTileItem RectItem(ScreenScale * FVector2D(CursLoc.X - 5, CursLoc.Y - 5), ScreenScale * FVector2D(Size.X + 5, Size.Y + 5), FColor(255, 255, 255, 100));
-	FCanvasLineItem Line1(ScreenScale * (FVector2D(CursLoc.X - 5, CursLoc.Y - 5)), ScreenScale * (FVector2D(CursLoc.X - 5, 0) + FVector2D(Size.X + 5, CursLoc.Y - 5)));
-	FCanvasLineItem Line2(ScreenScale * (FVector2D(CursLoc.X - 5, 0) + FVector2D(Size.X + 5, CursLoc.Y - 5)), ScreenScale * (FVector2D(CursLoc.X - 5, CursLoc.Y - 5) + FVector2D(Size.X + 5, Size.Y + 5)));
-	FCanvasLineItem Line3(ScreenScale * (FVector2D(CursLoc.X - 5, CursLoc.Y - 5) + FVector2D(Size.X + 5, Size.Y + 5)), ScreenScale * (FVector2D(0, CursLoc.Y - 5) + FVector2D(CursLoc.X - 5, Size.Y + 5)));
-	FCanvasLineItem Line4(ScreenScale * (FVector2D(0, CursLoc.Y - 5) + FVector2D(CursLoc.X - 5, Size.Y + 5)), ScreenScale * (FVector2D(CursLoc.X - 5, CursLoc.Y - 5)));
-
+	
 	switch (button.ButtonsState)
 	{
 	case FButton::Basic:
+		//draw a icon
 		Canvas->DrawTile(button.VisualUp.Texture, ScreenScale.X * button.Start.X, ScreenScale.Y * button.Start.Y, ScreenScale.X * (button.End.X- button.Start.X), ScreenScale.Y * (button.End.X - button.Start.X), button.VisualUp.U, button.VisualUp.V, button.VisualUp.UL, button.VisualUp.VL);
 		Canvas->TextSize(TheFont, button.Name.ToString(), Size.X, Size.Y, ScreenScale.X , ScreenScale.Y );
 		Canvas->DrawText(TheFont, button.Name.ToString(), ScreenScale.X * (button.Start.X + (button.Width.X - Size.X) / 2), ScreenScale.Y * (button.Start.Y + (button.Width.Y - Size.Y) / 2), ScreenScale.X , ScreenScale.Y);
 		break;
 	case FButton::Hover:
+		// for each item draw a box to put text 
+		FCanvasTileItem RectItem(ScreenScale * FVector2D(CursLoc.X - 5, CursLoc.Y - 5), ScreenScale * FVector2D(Size.X + 5, Size.Y + 5), FColor(255, 255, 255, 100));
+		FCanvasLineItem Line1(ScreenScale * (FVector2D(CursLoc.X - 5, CursLoc.Y - 5)), ScreenScale * (FVector2D(CursLoc.X - 5, 0) + FVector2D(Size.X + 5, CursLoc.Y - 5)));
+		FCanvasLineItem Line2(ScreenScale * (FVector2D(CursLoc.X - 5, 0) + FVector2D(Size.X + 5, CursLoc.Y - 5)), ScreenScale * (FVector2D(CursLoc.X - 5, CursLoc.Y - 5) + FVector2D(Size.X + 5, Size.Y + 5)));
+		FCanvasLineItem Line3(ScreenScale * (FVector2D(CursLoc.X - 5, CursLoc.Y - 5) + FVector2D(Size.X + 5, Size.Y + 5)), ScreenScale * (FVector2D(0, CursLoc.Y - 5) + FVector2D(CursLoc.X - 5, Size.Y + 5)));
+		FCanvasLineItem Line4(ScreenScale * (FVector2D(0, CursLoc.Y - 5) + FVector2D(CursLoc.X - 5, Size.Y + 5)), ScreenScale * (FVector2D(CursLoc.X - 5, CursLoc.Y - 5)));
+
+		// draw it all and the text
 		Canvas->DrawTile(button.VisualUp.Texture, ScreenScale.X * button.Start.X, ScreenScale.Y * button.Start.Y, ScreenScale.X * (button.End.X - button.Start.X), ScreenScale.Y * (button.End.X - button.Start.X), button.VisualUp.U, button.VisualUp.V, button.VisualUp.UL, button.VisualUp.VL);
 		Canvas->TextSize(TheFont, button.Name.ToString(), Size.X, Size.Y, ScreenScale.X, ScreenScale.X);
 		Canvas->DrawText(TheFont, button.Name.ToString(), ScreenScale.X * (button.Start.X + (button.Width.X - Size.X) / 2), ScreenScale.Y * (button.Start.Y + (button.Width.Y - Size.Y) / 2), ScreenScale.X, ScreenScale.Y);
@@ -132,6 +159,7 @@ void AButtonHUD::DrawButton(FButton button)
 		Canvas->DrawText(TheFont, button.ToolTip, ScreenScale.X * CursLoc.X, ScreenScale.Y * CursLoc.Y, ScreenScale.X, ScreenScale.Y);
 		break;
 	case FButton::Pressed:
+		//draw a icon pressed
 		Canvas->DrawTile(button.VisualUp.Texture, ScreenScale.X * button.Start.X, ScreenScale.Y * button.Start.Y, ScreenScale.X * (button.End.X - button.Start.X), ScreenScale.Y * (button.End.X - button.Start.X), button.VisualUp.U, button.VisualUp.V, button.VisualUp.UL, button.VisualUp.VL);
 		Canvas->TextSize(TheFont, button.Name.ToString(), Size.X, Size.Y, ScreenScale.X, ScreenScale.Y);
 		Canvas->DrawText(TheFont, button.Name.ToString(), ScreenScale.X * (button.Start.X + (button.Width.X - Size.X) / 2), ScreenScale.X * (button.Start.Y + (button.Width.Y - Size.Y) / 2), ScreenScale.X, ScreenScale.Y);
@@ -141,7 +169,7 @@ void AButtonHUD::DrawButton(FButton button)
 }
 
 
-
+// Draw the menu 
 void AButtonHUD::DrawMenuBRM(FMenu Menu)
 {
 	if (Canvas == nullptr)
@@ -149,16 +177,17 @@ void AButtonHUD::DrawMenuBRM(FMenu Menu)
 	//GetWorld()->GetGameViewport()->GetViewportSize(ScreenScale);
 	//ScreenScale.X /= 1600;
 	//ScreenScale.Y /= 900;
+	//get a area to draw in
 	ScreenScale.X = Canvas->ClipX / 1600;
 	ScreenScale.Y = Canvas->ClipY / 900;
 
-
+	// get it all and make a rec to draw in
 	FVector2D Size;
 
 	FCanvasTileItem RectItem((FVector2D(0, 0)),FVector2D(1, 1), FColor(255, 255, 255, 100));
 	FCanvasLineItem Line1((FVector2D(0, 0)), FVector2D(1, 1));
 
-
+	// Draw a background
 	Canvas->DrawTile(Menu.Visual.Texture, ScreenScale.X * Menu.Start.X, ScreenScale.Y * Menu.Start.Y, ScreenScale.X * (Menu.End.X - Menu.Start.X), ScreenScale.Y * (Menu.End.Y - Menu.Start.Y), Menu.Visual.U, Menu.Visual.V, Menu.Visual.UL, Menu.Visual.VL);
 
 
