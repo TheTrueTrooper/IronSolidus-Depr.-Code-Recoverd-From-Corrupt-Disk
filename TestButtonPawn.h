@@ -12,7 +12,9 @@ UCLASS()
 class IRONSOLIDUS3_API ATestButtonPawn : public AButtonPawn
 {
 	GENERATED_BODY()
-		 
+	//so this was a on screen button binding system.
+	//#include <functional>
+	//could have also been usefull std::function<void> test
 	TArray<ButtonBinding<ATestButtonPawn>> ButtonBindings;
 
 	void TestMenuAction();
